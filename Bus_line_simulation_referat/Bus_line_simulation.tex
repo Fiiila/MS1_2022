@@ -1,0 +1,333 @@
+\documentclass{article}
+
+\usepackage[dvipsnames]{xcolor}%barevne rozliseni kodu
+\usepackage{mathptmx}
+%packages for language
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+%packages for graphic
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{import}
+\usepackage[a4paper, total={17cm,25.7cm}, top=2cm, left=2cm, includefoot]{geometry}
+\usepackage{todonotes}
+\usepackage{standalone}
+\usepackage{colortbl}%pro barevne zmeny v tabulce
+\usepackage{float}
+\usepackage{csvsimple} %pro import a práci s csv soubory
+\usepackage{indentfirst}  % odsazení prvního řádku v odstavci
+\usepackage{hyperref} %dela odkazy na mista v dokumentu atd
+\usepackage{amsmath}%psani matic
+\usepackage{mathrsfs}%psani kroucenym matematickym pismem
+\usepackage{pdfpages}%vkladani celych pdf dokumentu
+%cesta k obrazkum: ./Graphics/....
+\usepackage{listings,lstautogobble}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+	backgroundcolor=\color{white},   % choose the background color
+	basicstyle=\footnotesize,        % size of fonts used for the code
+	breaklines=true,                 % automatic line breaking only at whitespace
+	captionpos=b,                    % sets the caption-position to bottom
+	commentstyle=\color{mygray},    % comment style
+	escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+	keywordstyle=\color{mymauve},       % keyword style
+	stringstyle=\color{mygreen},     % string literal style
+	numbers=left,
+	autogobble=true,
+}
+
+\begin{document}
+	\input{titlepage}
+	
+	
+	\section{Úvod a motivace}
+		Pro svou semestrální práci jsem si vybral simulaci autobusové linky. Simulace byla vytvořena za pomoci balíčku "javaSimulation", který usnadňuje modelaci procesů v jazyce Java.\\
+		
+		Téma práce bylo zpracováno z pohledu tvorby simulace a nástroje pro provozovatele hromadné dopravy ve městech. Po mírných úpravách např. odlišných časů mezi zastávkami lze použít i pro dálkové autobusové linky. Hlavním smyslem práce však bylo vytvořit simulaci, která by poskytovala informace pro dopravce a dokázala poskytnout odpovědi na požadovanou kapacitu autobusů nebo jejich frekvenci a následnou změnu jízdních řádů.
+	\section{Vypracování}
+		Před započetím programování cílového řešení bylo potřeba ujasnit si, jaké třídy budou pro zvolenou simulaci potřeba. K tomu posloužila následující dekompozice procesu provozu autobusové linky.\\
+		Třídy:
+		\begin{itemize}
+			\item \verb|BusLineSimulation|
+			\item \verb|Bus|
+			\item \verb|BusGenerator|
+			\item \verb|BusStop|
+			\item \verb|Passenger|
+		\end{itemize}
+		\subsection{BusLineSimulation}
+			Tato třída slouží jako hlavní třída, v jejímž rámci probíhá samotná simulace. Kromě globálních parametrů pro celou simulaci a její analýzu obsahuje v metodě \verb|actions()| cyklus pro počáteční inicializaci, vytvoření odpovídajícího počtu zastávek a vložení do seznamu \verb|busLine|. Následně aktivuje generátor autobusů s předem definovanými parametry (\verb|bus_capacity|, čas po kterém autobusy vyjíždějí apod.). Po nastavené délce simulace \verb|simPeriod| v minutách a času navíc pro dokončení. Po doběhnutí simulace se do konzole vypíše výstup obsahující informace o průběhu a zakončení.
+		\subsection{Bus}
+			Třída pro reprezentaci autobusu a simulaci přepravy cestujících. Obsahuje informace o své kapacitě (\verb|capacity|), aktuální zastávce (\verb|busstopnumber|) a cestujících v seznamu \verb|passengers|. Obsahuje navíc ještě seznam \verb|getting_off|, do kterého se po naplnění autobusu zařadí cestující, co budou vystupovat na příští zastávce. Tento seznam není vyloženě nutný, ale v simulaci představuje lidi, kteří se postaví ke dveřím, aby co nejrychleji vystoupili.\\
+			Autobus při obsluze pracuje ve třech fázích. V první nechá vystoupit cestující, kteří chtějí vystoupit. Ve druhé nechá nastoupit lidi na aktuální zastávce, dokud to kapacita autobusu dovolí a nakonec proběhne zařazení vystupujících do seznamu \verb|getting_off| a následně je autobus přemístěn po určeném čase na další zastávku.
+		\subsection{BusGenerator}
+			Jak již název napovídá, tato třída má na starosti generování autobusů v pravidelných intervalech podle jízdního řádu dokud neuplyne simulační čas. V cyklu vypouští nové autobusy na první zastávku, odkud pokračují na další zastávky v seznamu \verb|busLine|.
+		\subsection{BusStop}
+			Reprezentuje zastávku, kam chodí lidé s cílem přepravit se na jednu z následujících zastávek. Zastávka s určitým nadhledem funguje jako generátor cestujících a byla tak i naprogramována. Po zařazení zastávky do seznamu \verb|busLine| v počáteční inicializaci se spustí vnitřní cyklus, který začne generovat cestující do seznamu \verb|waitingPassengers| reprezentující frontu na zastávce. Tuto frontu obsahuje každá vygenerovaná zastávka a z ní si pak autobus nabírá své cestující.
+		\subsection{Passenger}
+			Jednoduchá třída odděděná od třídy \verb|Link|, která neobsahuje žádné aktivní procesy. Každý cestující má však jeden parametr, jímž je výstupní zastávka, která mu je však náhodně přiřazena zastávkou. Náhoda je omezena s ohledem na nástupní zastávku a celkový počet zastávek.
+	\section{Realizace}
+		Výstupem simulace je následující text, který informuje o jejím výsledku. V první části se lze dozvědět informace o počtu autobusů, zastávek a cestujících, kteří byli nebo nebyli přepraveni ze zastávek během simulace. Následuje výpis nepřepravených cestujících stále čekajících na autobus na jednotlivých zastávkách.\\
+		Dále výstup obsahuje statistické informace o průměrném využití kapacit autobusů mezi jednotlivými zastávkami a časové srovnání proběhlé simulace a očekávaného ideálního času. Pro optimalizaci volby nových parametrů jsou vypsány i procentní využití času pro nástup, výstup a zpoždění.\\
+		Pro ukázkovou simulaci byly použity jak následující parametry:
+			\begin{itemize}
+				\item počet zastávek - 5
+				\item kapacita autobusu - 10
+				\item simulační čas - 12*60 min
+				\item ideální čas mezi zastávkami - 10 min
+				\item interval mezi příjezdy autobusů na první zastávku - 90 min
+				\item generování zpoždění, chyb, délky nástupů/ výstupů atd. - náhodně
+			\end{itemize}
+		
+			\begin{verbatim}
+				Simulation output...
+				
+				GENERAL SIMULATION INFO
+				-----------------------
+				Generated buses: 9
+				Number of bus Stops: 5
+				Number of generated passengers: 273
+				Number of travelled passengers: 133
+				Number of passenger on 1. bus Stops: 8
+				Number of passenger on 2. bus Stops: 52
+				Number of passenger on 3. bus Stops: 41
+				Number of passenger on 4. bus Stops: 39
+				Number of passenger on 5. bus Stops: 0
+				
+				SIMULATION STATISTICS
+				---------------------
+				Bus capacity:10
+				Average used bus capacity between 1. and 2. stop is: 70.0 %
+				Average used bus capacity between 2. and 3. stop is: 91.11111111111111 %
+				Average used bus capacity between 3. and 4. stop is: 97.77777777777777 %
+				Average used bus capacity between 4. and 5. stop is: 96.66666666666667 %
+				Ideal travel time thru busline with 1 min for stopping and boarding passengers: 44.0 min
+				Average bus travel time: 57.879226488546834 min
+				Boarding takes: 3.032841858605662 %
+				Exitting takes: 2.25373651158541 %
+				Traffic jam takes: 4.974542099515745%
+				Average time of boarding 1 passenger takes 0.11878547876267986 min
+				Average time of exiting 1 passenger takes 0.08827073187940108 min
+			\end{verbatim}
+		\vspace{5mm}
+		\noindent
+		Na následujících stranách v příloze na straně \pageref{priloha1} je možné prohlédnou dříve popsaný zdrojový kód generující výstup výše.
+	\section{Závěr}
+		V této semestrální práci jsem si vyzkoušel jak se vytváří simulace reálného procesu a začal přemýšlet více o tom, jak by se i jiné procesy daly dekomponovat a simulovat, aby se bez testování dokázaly odhadnout potřebné parametry simulace.\\
+		Simulace autobusové linky se povedla přesně podle očekávání a pracuje tak jak má. Analytická vygenerovaná data odpovídají očekávání a dokážou zpřesnit představu o fungování reálného procesu. Jedná se však o velmi zjednodušený simulační model, ale dalo by se ho jednoduše rozšířit o další data nebo náhodné chyby či rozdílné generování lidí podle času během dne apod.\\
+		Závěrem považuji semestrální práci za zdařilou, splňující očekávání.
+		\newpage
+	\section{Příloha - 1}\label{priloha1}
+			\begin{lstlisting}[language=java]
+				import javaSimulation.*;
+				import javaSimulation.Process;
+				
+				public class BusLineSimulation extends Process{
+					/**
+					* class representing bus line
+					* by calling constructor of this class you will receive data related to your parameters
+					*/
+					int noOfBusStops;//number of bus stops in the busline
+					Head busLine = new Head();//queue contains bus stops
+					Random random = new Random(5);
+					//variables for simulation analysis
+					int generated_passengers;//total number of generated passengers on busstops
+					int travelled_passengers;//number of transported passengers
+					int generated_buses;//number of generated buses in simulation time
+					double[] avg_used_bus_capacity;//average used bus transport capacity between bus stops
+					double realTravelTime;
+					double boardingTime;
+					double exitTime;
+					//variables for changing simulation environment
+					int bus_capacity;//capacity of generated buses
+					double simPeriod = 12*60;//simulation time
+					double idealTravelTime=10;//ideal travel time between two bus stops
+					
+					BusLineSimulation(int n, int capacity) {noOfBusStops = n;avg_used_bus_capacity = new double[n];bus_capacity=capacity;}
+					
+					public void actions() {
+						//running simulation
+						for (int i = 1; i <= noOfBusStops; i++)
+						activate(new BusStop());//generating bus stops based on given parameter
+						activate(new BusGenerator());//activating bus generator
+						//hold for simulation time plus some added time to let simulation finish it work
+						hold(simPeriod+1000000);
+						report();//generate report about simulation
+					}
+					
+					void report() {
+						System.out.println("\nSimulation output...");
+						System.out.println("Number of bus Stops: " + busLine.cardinal());
+						//printing all individual passengers and printing their entry and exit stop
+						Link stoplink = busLine.first();
+						BusStop stop;
+						for (int i = 1; i <= noOfBusStops;i++){
+							stop = (BusStop)stoplink;
+							System.out.println(("Number of passenger on "+ i +". bus Stops: " + stop.waitingPassengers.cardinal()));
+							stoplink = stoplink.suc();
+						}
+						//statistics based on fullness of busses
+						System.out.println("Number of generated passengers: "+generated_passengers);
+						System.out.println("Number of travelled passengers: "+travelled_passengers);
+						System.out.println("Generated buses: "+generated_buses);
+						for(int i=0;i<noOfBusStops-1;i++){
+							System.out.println("Average used bus capacity between "+ (i+1) + ". and " + (i+2)+ ". stop is: "+ 100*avg_used_bus_capacity[i]/(bus_capacity*generated_buses) + " %");
+						}
+						System.out.println("Ideal travel time thru busline with 1 min for stopping and boarding passengers: "+ ((idealTravelTime+1)*(noOfBusStops-1))+" min");
+						System.out.println("Average bus travel time: " + (realTravelTime/generated_buses)+" min");
+						System.out.println("Boarding takes: " + (100*boardingTime/realTravelTime) +" %");
+						System.out.println("Exitting takes: " + (100*exitTime/realTravelTime)+" %");
+						System.out.println("Traffic jam takes: " + (100*(realTravelTime-((idealTravelTime+1)*generated_buses*noOfBusStops))/realTravelTime)+"%");
+						System.out.println("Average time of boarding 1 passenger takes "+ (boardingTime/travelled_passengers)+" min");
+						System.out.println("Average time of exiting 1 passenger takes "+ (exitTime/travelled_passengers)+" min");
+						
+						
+						
+					}
+					
+					
+					
+					class Bus extends Process{
+						/**
+						* class representing bus in bus line simulation
+						*/
+						public void actions(){
+							//internal parameters specifying bus
+							int capacity = bus_capacity;//
+							int busstopnumber = 1;//actual number of busstop
+							Head passengers = new Head();//passengers in bus capacity
+							Head getting_off = new Head();//passengers exiting next stop (waiting near doors)
+							Link busstop_link = busLine.first();//link onto first bus stop
+							//variables for helping with processing
+							BusStop busstop;
+							Link passengerlink;
+							Passenger passenger;
+							//statistics parameters
+							double inTime;
+							double totalInTime=0;
+							double outTime;
+							double totalOutTime=0;
+							double start = time();//bus starting time
+							//cycle what bus do from time its generated till final stop
+							while(busstopnumber<=noOfBusStops) {
+								//exiting
+								while(!getting_off.empty()){
+									getting_off.first().out();//unboarding / exiting
+									outTime = random.uniform(0.0,15.0)/60;//generating random exit time
+									totalOutTime+=outTime;
+									hold(outTime);//time that passenger needs to exit bus
+								}
+								//boarding
+								busstop = (BusStop) busstop_link;
+								while(passengers.cardinal()<capacity) {
+									if(!busstop.waitingPassengers.empty()){
+										passengerlink = busstop.waitingPassengers.first();
+										passenger = (Passenger)passengerlink;
+										passengerlink.out();
+										passenger.into(passengers);
+										travelled_passengers+=1;
+										inTime = random.uniform(0.0,15.0)/60;//generating random exit time
+										totalInTime+=inTime;
+										hold(inTime);//one passenger boarding time
+										continue;
+									}else {
+										break;
+									}
+								}
+								//counting passengers in bus for statistics
+								if(busstopnumber<noOfBusStops){
+									avg_used_bus_capacity[busstopnumber-1] += passengers.cardinal();
+								}
+								
+								//nalezeni pasazeru, co vystupuji nasledujici zastavku
+								passengerlink = passengers.first();
+								passenger = (Passenger)passengers.first();
+								for(int i=0 ;i<passengers.cardinal();i++){
+									if(busstopnumber==noOfBusStops-1){
+										passenger.out();
+										passenger.into(getting_off);
+										passengerlink = passengers.first();
+										passenger = (Passenger)passengerlink;
+									}
+									if(passenger.exitStop==busstopnumber+1){
+										passenger.out();
+										passenger.into(getting_off);
+										passengerlink = passengers.first();
+										passenger = (Passenger)passengerlink;
+										continue;
+									}
+									passengerlink = passengerlink.suc();
+									passenger = (Passenger)passengerlink;
+								}
+								busstop_link = busstop_link.suc();
+								busstopnumber += 1;
+								hold(idealTravelTime+random.uniform(0.0,2.0));//travel time plus delay
+							}
+							//counting complete statistics
+							boardingTime+=totalInTime;
+							exitTime+=totalOutTime;
+							realTravelTime+=time()-start;
+						}
+					}
+					
+					class BusGenerator extends Process{
+						/**
+						* class representing some depo from which drive buses in periodic time given by bus line schedule
+						*/
+						public void actions(){
+							//generating busses in fixed interval
+							while(time()<=simPeriod){
+								activate(new Bus());
+								generated_buses+=1;
+								hold(90);//waiting time between bus departures
+							}
+						}
+					}
+					
+					class Passenger extends Link{
+						/**
+						* class representing passenger with his own exit stop
+						*/
+						int exitStop;
+						Passenger(int e){exitStop=e;}
+					}
+					
+					class BusStop extends Process{
+						/**
+						* class representing bus stop
+						* passengers appears here so it works like passenger generator
+						*/
+						Head waitingPassengers = new Head();//waiting passengers on bus stop
+						int no_of_stop;//process variable holding number of this bus stop
+						public void actions(){
+							into(busLine);//taken into bus line
+							no_of_stop = busLine.cardinal();//given number based on position in bus line
+							if(no_of_stop<noOfBusStops){
+								//generating passengers on busstop
+								while (time() < simPeriod) {
+									new Passenger(random.randInt(no_of_stop+1,noOfBusStops)).into(waitingPassengers);//new waiting passenger
+									generated_passengers +=1;//statistics of total generated passengers
+									//statistics about generated passengers and their desired exit stop
+									System.out.println("pasazer cekajici na zastavce: "+no_of_stop+" vystupuje na zastavce: " + ((Passenger)waitingPassengers.first()).exitStop);
+									hold(random.negexp(1/11.0));//hold time defining frequency of generating passengers
+								}
+							}
+							
+							
+						}
+					}
+					
+					public static void main(String args[]){
+						activate(new BusLineSimulation(5,10));
+					}
+				}
+				
+			\end{lstlisting}
+	
+\end{document}
